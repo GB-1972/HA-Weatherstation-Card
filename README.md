@@ -1,5 +1,7 @@
 # Weather Station Card
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=GB-1972&repository=HA-Weatherstation-Card&category=plugin)
+
 A Home Assistant Lovelace card in **Mushroom style** showing a 16-point compass rose with a wind-direction arrow plus configurable chips for **temperature, humidity, pressure, wind speed, wind gusts, current rain and rain over the last 24 hours**.
 
 ![Weather Station Card screenshot](screenshot.png)
