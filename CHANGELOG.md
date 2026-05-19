@@ -1,5 +1,19 @@
 # Changelog
 
+## [v1.2.0] - 2026-05-19
+
+### Added
+
+- **Independent wind-direction invert** — the compass arrow and the direction text/degrees can now be inverted separately via two new options `wind_arrow_invert` and `wind_text_invert` (two toggles in the editor). This allows e.g. the arrow to show where the wind blows *to* while the text shows where it comes *from*.
+
+### Changed
+
+- The single `wind_direction_invert` option was replaced by `wind_arrow_invert` + `wind_text_invert`.
+
+### Migration
+
+- Backward compatible: an existing `wind_direction_invert: true/false` is automatically applied to **both** new options, so existing dashboards keep their current behavior with no action required.
+
 ## [v1.1.0] - 2026-05-18
 
 ### Added

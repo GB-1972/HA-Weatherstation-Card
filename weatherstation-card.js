@@ -1,9 +1,9 @@
 /**
- * Weather Station Card – v1.1.0
+ * Weather Station Card – v1.2.0
  *
  * Home Assistant Lovelace card in Mushroom style:
  *   • 16-point inline-SVG compass rose with red wind-direction arrow
- *   • Optional wind-direction invert (show where the wind blows TO)
+ *   • Arrow and direction text can be inverted independently
  *   • Temperature, humidity, pressure
  *   • Wind speed, wind gusts, UV index
  *   • Current rain, rain over the last 24 h
@@ -35,22 +35,23 @@ const TEXT_TO_DEG = {
 };
 
 /**
- * @param {*} raw     entity state (degrees or text label)
- * @param {boolean} invert  add 180° → show direction the wind blows TO
+ * Parse a wind-direction state into a 0–360° value (no inversion applied).
+ * @param {*} raw  entity state (degrees or text label)
+ * @returns {number|null}
  */
-function parseDirection(raw, invert = false) {
+function parseDirection(raw) {
   if (raw === undefined || raw === null || raw === "") return null;
-  let deg;
   const num = Number(raw);
-  if (!isNaN(num)) {
-    deg = ((num % 360) + 360) % 360;
-  } else {
-    const key = String(raw).trim().toUpperCase();
-    deg = TEXT_TO_DEG[key];
-    if (deg === undefined) return null;
-  }
-  if (invert) deg = (deg + 180) % 360;
-  return deg;
+  if (!isNaN(num)) return ((num % 360) + 360) % 360;
+  const key = String(raw).trim().toUpperCase();
+  const deg = TEXT_TO_DEG[key];
+  return deg === undefined ? null : deg;
+}
+
+/** Add 180° when `invert` is true. Passes null/NaN through untouched. */
+function invertDeg(deg, invert) {
+  if (deg === null || deg === undefined || isNaN(deg)) return deg;
+  return invert ? (deg + 180) % 360 : deg;
 }
 
 function degToCompass(deg) {
@@ -128,7 +129,8 @@ class WeatherStationCard extends LitElement {
       wind_speed: findFirst("wind_speed"),
       wind_gust: "",
       wind_direction: "",
-      wind_direction_invert: false,
+      wind_arrow_invert: false,
+      wind_text_invert: false,
       uv_index: "",
       rain_current: "",
       rain_24h: "",
@@ -138,7 +140,7 @@ class WeatherStationCard extends LitElement {
 
   setConfig(config) {
     if (!config) throw new Error("Ungültige Konfiguration");
-    this._config = {
+    const merged = {
       title: "Weather Station",
       temperature: "",
       humidity: "",
@@ -146,13 +148,23 @@ class WeatherStationCard extends LitElement {
       wind_speed: "",
       wind_gust: "",
       wind_direction: "",
-      wind_direction_invert: false,
+      wind_arrow_invert: false,
+      wind_text_invert: false,
       uv_index: "",
       rain_current: "",
       rain_24h: "",
       color_thresholds: {},
       ...config,
     };
+    // Backward compat: legacy single toggle → apply to both arrow and text
+    if (config.wind_direction_invert !== undefined) {
+      if (config.wind_arrow_invert === undefined)
+        merged.wind_arrow_invert = config.wind_direction_invert;
+      if (config.wind_text_invert === undefined)
+        merged.wind_text_invert = config.wind_direction_invert;
+    }
+    delete merged.wind_direction_invert;
+    this._config = merged;
   }
 
   getCardSize() {
@@ -304,10 +316,9 @@ class WeatherStationCard extends LitElement {
 
     const c = this._config;
     const ct = c.color_thresholds || {};
-    const dirDeg = parseDirection(
-      this._state(c.wind_direction),
-      !!c.wind_direction_invert
-    );
+    const baseDeg = parseDirection(this._state(c.wind_direction));
+    const arrowDeg = invertDeg(baseDeg, !!c.wind_arrow_invert);
+    const textDeg = invertDeg(baseDeg, !!c.wind_text_invert);
 
     const chips = METRICS.filter((m) => c[m.key]).map((m) => {
       const value = this._state(c[m.key]);
@@ -333,11 +344,11 @@ class WeatherStationCard extends LitElement {
             @click=${() =>
               this._onMore(c.wind_direction || c.wind_speed)}
           >
-            ${this._renderRose(dirDeg)}
+            ${this._renderRose(arrowDeg)}
             <div class="compass-caption">
-              <span class="dir">${dirDeg !== null ? degToCompass(dirDeg) : "Wind"}</span>
-              ${dirDeg !== null
-                ? html`<span class="deg">${fmt(dirDeg, 0)}°</span>`
+              <span class="dir">${textDeg !== null ? degToCompass(textDeg) : "Wind"}</span>
+              ${textDeg !== null
+                ? html`<span class="deg">${fmt(textDeg, 0)}°</span>`
                 : ""}
             </div>
           </div>
@@ -545,7 +556,8 @@ class WeatherStationCardEditor extends LitElement {
       { name: "wind_speed", ...ent() },
       { name: "wind_gust", ...ent() },
       { name: "wind_direction", ...ent(["sensor", "input_number", "input_text"]) },
-      { name: "wind_direction_invert", selector: { boolean: {} } },
+      { name: "wind_arrow_invert", selector: { boolean: {} } },
+      { name: "wind_text_invert", selector: { boolean: {} } },
       { name: "uv_index", ...ent() },
       { name: "rain_current", ...ent() },
       { name: "rain_24h", ...ent() },
@@ -562,7 +574,8 @@ class WeatherStationCardEditor extends LitElement {
         wind_speed: "Windgeschwindigkeit",
         wind_gust: "Windböen",
         wind_direction: "Windrichtung (° oder Text)",
-        wind_direction_invert: "Windrichtung umkehren (Richtung, in die der Wind weht)",
+        wind_arrow_invert: "Pfeil umkehren (zeigt Richtung, in die der Wind weht)",
+        wind_text_invert: "Text/Grad umkehren (zeigt Richtung, in die der Wind weht)",
         uv_index: "UV-Index",
         rain_current: "Regen aktuell (mm)",
         rain_24h: "Regen 24 h (mm)",
@@ -845,7 +858,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c WEATHERSTATION-CARD %c v1.1.0 ",
+  "%c WEATHERSTATION-CARD %c v1.2.0 ",
   "color:white;background:#03a9f4;font-weight:700;border-radius:4px 0 0 4px;padding:2px 6px",
   "color:#03a9f4;background:white;font-weight:700;border-radius:0 4px 4px 0;padding:2px 6px;border:1px solid #03a9f4"
 );

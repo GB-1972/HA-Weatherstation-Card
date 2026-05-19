@@ -10,7 +10,7 @@ A Home Assistant Lovelace card in **Mushroom style** showing a 16-point compass 
 
 - **16-point compass rose** drawn as inline SVG — no images, no external assets
 - **Red wind-direction arrow** that rotates smoothly to the current heading
-- **Wind-direction invert** — optional toggle to show the direction the wind blows *to* instead of where it comes *from*
+- **Independent wind-direction invert** — the arrow and the direction text/degrees can be inverted separately, so the arrow can show where the wind blows *to* while the text shows where it comes *from* (or any combination)
 - **Eight sensor chips** in Mushroom style — temperature, humidity, pressure, wind, gusts, UV index, rain, rain 24 h. Each is optional; unconfigured chips are hidden automatically
 - **Per-metric color thresholds** — chip icons can change color based on the value (e.g. temperature blue → green → yellow → red, or rain grey → blue). Configured in a dedicated **Colors** editor tab
 - **Visual editor** with entity selectors for every field — no YAML required
@@ -70,7 +70,8 @@ pressure: sensor.outdoor_pressure
 wind_speed: sensor.wind_speed
 wind_gust: sensor.wind_gust
 wind_direction: sensor.wind_direction   # degrees 0–360 OR text (N, NE, ...)
-wind_direction_invert: false             # true → show where wind blows TO
+wind_arrow_invert: false                 # true → arrow shows where wind blows TO
+wind_text_invert: false                  # true → text/° shows where wind blows TO
 uv_index: sensor.uv_index
 rain_current: sensor.rain_current        # in mm
 rain_24h: sensor.rain_24h                # in mm
@@ -106,7 +107,8 @@ Everything is also editable through the visual editor — no YAML knowledge requ
 | `wind_speed`            | entity   | Sensor reporting wind speed                                                                  |
 | `wind_gust`             | entity   | Sensor reporting wind gust speed                                                             |
 | `wind_direction`        | entity   | Sensor reporting wind direction (degrees `0`–`360` **or** text like `NE`)                    |
-| `wind_direction_invert` | boolean  | `true` adds 180° → arrow/caption show the direction the wind blows **to** (default `false`)  |
+| `wind_arrow_invert`     | boolean  | `true` adds 180° to the **arrow** → it shows where the wind blows **to** (default `false`)    |
+| `wind_text_invert`      | boolean  | `true` adds 180° to the **text/°** → it shows where the wind blows **to** (default `false`)   |
 | `uv_index`              | entity   | Sensor reporting the UV index                                                                |
 | `rain_current`          | entity   | Sensor reporting current rain amount (mm)                                                    |
 | `rain_24h`              | entity   | Sensor reporting rain over the last 24 h (mm)                                                |
@@ -116,13 +118,23 @@ Leave any entity option blank to hide that chip.
 
 ### Wind direction conventions
 
-The red arrow points in the direction indicated by the sensor value. Most
-Home Assistant weather integrations report wind direction as the direction
-the wind is *coming from* — that's what the card displays by default.
+The red arrow and the direction text point in the direction indicated by the
+sensor value. Most Home Assistant weather integrations report wind direction
+as the direction the wind is *coming from* — that's what the card displays by
+default.
 
-If you want the arrow to show the direction the wind blows **to**, just enable
-`wind_direction_invert: true` (or tick the toggle in the editor). The card adds
-180° internally — no template sensor needed.
+The **arrow** and the **text/degrees** can be inverted **independently**:
+
+- `wind_arrow_invert: true` — the arrow shows the direction the wind blows *to*
+- `wind_text_invert: true` — the text/° shows the direction the wind blows *to*
+
+So you can, for example, leave the text at "comes from" while flipping only
+the arrow to "blows to" (or any other combination). The card adds 180°
+internally — no template sensor needed.
+
+> Migrating from ≤ v1.1.0: the old `wind_direction_invert` is automatically
+> applied to both `wind_arrow_invert` and `wind_text_invert`, so nothing
+> changes until you set them individually.
 
 ## Color thresholds
 
